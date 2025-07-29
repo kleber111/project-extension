@@ -8,8 +8,9 @@ datasource db {
 }
 
 model Product {
-  code     String @id
+  code     String  @id
   name     String
   price    Int
   quantity Float
+  image    String?
 }

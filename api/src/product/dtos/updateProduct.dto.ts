@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { Type } from "class-transformer";
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class UpdateProductDto {
   @IsString()
@@ -7,5 +8,10 @@ export class UpdateProductDto {
 
   @IsNumber()
   @IsNotEmpty()
+  @Type(() => Number)
   price: number;
+
+  @IsString()
+  @IsOptional()
+  image?: string;
 }
