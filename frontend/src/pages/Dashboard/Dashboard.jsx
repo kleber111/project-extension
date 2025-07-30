@@ -18,6 +18,7 @@ import {
 } from '@mui/material'
 import { Add, Delete, Edit, Search } from '@mui/icons-material'
 import { useState } from 'react'
+import AddProductDialog from '../../components/AddProductDialog'
 
 export default function Dashboard() {
   const [openDialog, setOpenDialog] = useState(false)
@@ -199,22 +200,10 @@ export default function Dashboard() {
         </Grid>
       </Paper>
 
-      {/* Dialogs colocar depois em componentes pra ficar melhor quem for mexer*/}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Adicionar Produto</DialogTitle>
-        <DialogContent>
-          <TextField label="Nome do Produto" fullWidth sx={{ mb: 2, mt: 1 }} />
-          <TextField label="Código" fullWidth sx={{ mb: 2 }} />
-          <TextField label="Preço" fullWidth sx={{ mb: 2 }} />
-          <TextField label="Estoque" fullWidth sx={{ mb: 2 }} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={() => setOpenDialog(false)}>
-            Salvar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <AddProductDialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+      />
     </Box>
   )
 }
