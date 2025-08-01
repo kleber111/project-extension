@@ -6,18 +6,23 @@ import {
     DialogContent,
     DialogTitle,
     TextField,
+    Avatar,
+    IconButton
 } from '@mui/material'
 import { useState, useEffect } from 'react'
+import { AddAPhoto } from '@mui/icons-material'
 
 const initialState = {
     nome: '',
     codigo: '',
     preco: '',
     estoque: '',
+    imagem: null 
 }
 
-export default function AddProductDialog({ open, onClose}) {
+export default function AddProductDialog({ open, onClose, onSave, produto }) {
     const [formData, setFormData] = useState(initialState);
+    const [previewImagem, setPreviewImagem] = useState(null)
 
     const handleInputChange = (event) => {
         const {name, value} = event.target;
@@ -27,23 +32,83 @@ export default function AddProductDialog({ open, onClose}) {
         })) 
     }
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setFormData(prev => ({...prev, imagem: file}))
+            
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewImagem(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
     const handleSave = () => {
-        console.log('Dados a serem salvos: ', formData)
+        const formDataToSend = new FormData();
+        formDataToSend.append('name', formData.nome);
+        formDataToSend.append('code', formData.codigo);
+        formDataToSend.append('price', Number(formData.preco));
+        formDataToSend.append('quantity', Number(formData.estoque));
+        if (formData.imagem) {
+            formDataToSend.append('image', formData.imagem);
+        }
+
+        onSave(formDataToSend)
         onClose()
     }
 
     useEffect(() => {
         if(open) {
-            setFormData(initialState)
+            //A LOGICA AQUI E SE O PRODUTO EXISTE E EDIÇÃO ENTAO SETA O PRODUTO VINDO DO COMPONENTE PRINCIPAL SE NAO FOR FICA INITIAL STATE
+            if(produto) {
+                setFormData({
+                    nome: produto.name || produto.nome || '',
+                    codigo: produto.code || produto.codigo || '',
+                    preco: produto.price?.toString() || produto.preco || '',
+                    estoque: produto.quantity?.toString() || produto.estoque || '',
+                    imagem: null
+                })
+                
+                if (produto.image) {
+                    setPreviewImagem(`http://localhost:3000/uploads/${produto.image}`)
+                } else {
+                    setPreviewImagem(null)
+                }
+            } else {
+                setFormData(initialState)
+                setPreviewImagem(null) 
+            }
         }
-    }, [open])
-
-
+    }, [open, produto]) 
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-            <DialogTitle>Adicionar Produto</DialogTitle>
+            {/* esse dialog vai ser reaproveitado tbm para o editar fica melhor assim e evita criar um so pro editar*/}
+            <DialogTitle>{produto ? 'Editar Produto' : 'Adicionar Produto'}</DialogTitle>
             <DialogContent>
+          
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                <label htmlFor="upload-image">
+                    <input
+                        accept="image/*"
+                        id="upload-image"
+                        type="file"
+                        style={{ display: 'none' }}
+                        onChange={handleImageChange}
+                    />
+                    <IconButton component="span">
+                        <Avatar 
+                            src={previewImagem} 
+                            sx={{ width: 100, height: 100 }}
+                        >
+                            {!previewImagem && <AddAPhoto fontSize="large" />}
+                        </Avatar>
+                    </IconButton>
+                </label>
+            </Box>
+
             <TextField
                 name= 'nome'
                 label= 'Nome do Produto'
@@ -67,6 +132,7 @@ export default function AddProductDialog({ open, onClose}) {
                     value= {formData.preco}
                     onChange= {handleInputChange}
                     fullWidth
+                    type="number" 
                 />
                 <TextField
                     name= 'estoque'
@@ -74,6 +140,7 @@ export default function AddProductDialog({ open, onClose}) {
                     value= {formData.estoque}
                     onChange= {handleInputChange}
                     fullWidth
+                    type="number" 
                 />
             </Box>
             </DialogContent>

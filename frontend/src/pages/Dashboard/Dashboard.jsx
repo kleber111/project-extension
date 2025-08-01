@@ -17,18 +17,69 @@ import {
   Typography,
 } from '@mui/material'
 import { Add, Delete, Edit, Search } from '@mui/icons-material'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AddProductDialog from '../../components/AddProductDialog'
+import api from '../../services/api' // Importando seu service
 
 export default function Dashboard() {
   const [openDialog, setOpenDialog] = useState(false)
+  const [produtos, setProdutos] = useState([])
+  const [produtoEditando, setProdutoEditando] = useState(null)
 
-  const produtos = Array(8).fill({
-    nome: 'Arroz Branco 5kg',
-    codigo: 'AR-URB-5kg',
-    preco: 'R$4,99',
-    estoque: '15 em estoque',
-  })
+  // Função pra carregar os produtos da API - coloquei dentro do useEffect
+  useEffect(() => {
+    const carregarProdutos = async () => {
+      try {
+        const response = await api.get('/')
+        setProdutos(response.data)
+      } catch (error) {
+        console.error('erro ao carregar', error)
+        //  setProdutos(Array(8).fill({
+        //     nome: 'Arroz Branco 5kg',
+        //     codigo: 'AR-URB-5kg',
+        //     preco: 'R$4,99',
+        //      estoque: '15 em estoque',
+        //     }))
+      }
+    }
+
+    carregarProdutos()
+  }, [])
+
+  //função reaproveitada ela salva e faz o editar
+  const handleSalvarProduto = async (formData) => {
+    try {
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+
+      if (produtoEditando) {
+        await api.patch(`/${produtoEditando.code}`, formData, config)
+      } else {
+        await api.post('/', formData, config)
+      }
+
+      const response = await api.get('/')
+      setProdutos(response.data)
+    } catch (error) {
+      console.error('Falha ao salvar produto:', error)
+    } finally {
+      setOpenDialog(false)
+      setProdutoEditando(null)
+    }
+  }
+
+  const handleDeletarProduto = async (codigo) => {
+    try {
+      await api.delete(`/${codigo}`);
+      const response = await api.get('/')
+      setProdutos(response.data)
+    } catch (error) {
+      console.error('Erro ao deletar produto:', error)
+    }
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -70,13 +121,16 @@ export default function Dashboard() {
               backgroundColor: 'primary.dark',
             }
           }}
-          onClick={() => setOpenDialog(true)}
+          onClick={() => {
+            setProdutoEditando(null)
+            setOpenDialog(true)
+          }}
         >
           Adicionar Produto
         </Button>
       </Box>
 
-{/* DEpois diminuir o tamanho ou ajsutar para ter mais filtros de repente*/}
+      {/* DEpois diminuir o tamanho ou ajsutar para ter mais filtros de repente*/}
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
         <TextField
           fullWidth
@@ -98,8 +152,6 @@ export default function Dashboard() {
         />
 
         <Grid container spacing={3}>
-
-
           {produtos.map((produto, index) => (
             <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
               <Card
@@ -117,7 +169,10 @@ export default function Dashboard() {
                     width: '100%',
                     height: 140,
                     bgcolor: '#f5f5f5',
-                    borderBottom: '1px solid #e0e0e0'
+                    borderBottom: '1px solid #e0e0e0',
+                    backgroundImage: produto.image ? `url(${import.meta.env.BACK_URL || 'http://localhost:3000'}/uploads/${produto.image})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
                   }}
                 />
                 {/**  cards */}
@@ -141,13 +196,24 @@ export default function Dashboard() {
                       fontWeight="bold"
                       sx={{ lineHeight: 1.2 }}
                     >
-                      {produto.nome}
+                      {produto.name || produto.nome}
                     </Typography>
                     <Box>
-                      <IconButton size="small" sx={{ p: 0.5, ml: 0.5 }}>
+                      <IconButton
+                        size="small"
+                        sx={{ p: 0.5, ml: 0.5 }}
+                        onClick={() => {
+                          setProdutoEditando(produto)
+                          setOpenDialog(true)
+                        }}
+                      >
                         <Edit sx={{ fontSize: 16 }} />
                       </IconButton>
-                      <IconButton size="small" sx={{ p: 0.5 }}>
+                      <IconButton
+                        size="small"
+                        sx={{ p: 0.5 }}
+                        onClick={() => handleDeletarProduto(produto.code || produto.codigo)}
+                      >
                         <Delete sx={{ fontSize: 16 }} />
                       </IconButton>
                     </Box>
@@ -161,9 +227,8 @@ export default function Dashboard() {
                       fontSize: '0.8rem'
                     }}
                   >
-                    {produto.codigo}
+                    {produto.code || produto.codigo}
                   </Typography>
-
 
                   <Typography
                     fontWeight="bold"
@@ -172,7 +237,7 @@ export default function Dashboard() {
                       fontSize: '1.1rem'
                     }}
                   >
-                    {produto.preco}
+                    R$ {typeof produto.price === 'number' ? produto.price.toFixed(2) : produto.preco}
                   </Typography>
 
                   <Box
@@ -189,20 +254,23 @@ export default function Dashboard() {
                       alignSelf: 'flex-start',
                     }}
                   >
-                    {produto.estoque}
+                    {produto.quantity || produto.estoque} em estoque
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
           ))}
-
-
         </Grid>
       </Paper>
 
       <AddProductDialog
         open={openDialog}
-        onClose={() => setOpenDialog(false)}
+        onClose={() => {
+          setOpenDialog(false);
+          setProdutoEditando(null);
+        }}
+        onSave={handleSalvarProduto}
+        produto={produtoEditando} //MEXI NO COMPONENTE PRA APROVEITAR NA EDICAO
       />
     </Box>
   )
